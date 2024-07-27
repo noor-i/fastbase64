@@ -1,75 +1,73 @@
-; Function signature
 define i64 @fast_avx2_base64_decode(i8* %out, i8* %src, i64 %srclen) {
 entry:
-  ; Define constants
-  %lut_lo = constant <32 x i8> <i8 21, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 19, i8 26, i8 27, i8 27, i8 27, i8 26, i8 21, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 17, i8 19, i8 26, i8 27, i8 27, i8 27, i8 26>
-  %lut_hi = constant <32 x i8> <i8 16, i8 16, i8 1, i8 2, i8 4, i8 8, i8 4, i8 8, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 1, i8 2, i8 4, i8 8, i8 4, i8 8, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16, i8 16>
-  %lut_roll = constant <32 x i8> <i8 0, i8 16, i8 19, i8 4, i8 -65, i8 -65, i8 -71, i8 -71, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 16, i8 19, i8 4, i8 -65, i8 -65, i8 -71, i8 -71, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0>
-  %mask_2F = constant <32 x i8> <i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47, i8 47>
+  %out_orig = alloca i8*
+  %src_ptr = alloca i8*
+  %srclen_ptr = alloca i64
+  store i8* %out, i8** %out_orig
+  store i8* %src, i8** %src_ptr
+  store i64 %srclen, i64* %srclen_ptr
 
-  ; Initialize pointers and lengths
-  %out_orig = %out
-  %src_ptr = %src
-  %srclen_ptr = %srclen
+  br label %while.cond
 
-  ; Loop for processing input in chunks of 32 bytes
-  br label %loop
+while.cond:
+  %srclen_val = load i64, i64* %srclen_ptr
+  %cmp = icmp uge i64 %srclen_val, 45
+  br i1 %cmp, label %while.body, label %while.end
 
-loop:
-  %srclen_cmp = icmp uge i64 %srclen_ptr, 45
-  br i1 %srclen_cmp, label %process_chunk, label %scalar_decode
+while.body:
+  %src_val = load i8*, i8** %src_ptr
+  %str = load <32 x i8>, <32 x i8>* %src_val
 
-process_chunk:
-  ; Load 32 bytes from src
-  %str = load <32 x i8>, <32 x i8>* %src_ptr
+  %lut_lo = <i8 0x15, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x13, i8 0x1A, i8 0x1B, i8 0x1B, i8 0x1B, i8 0x1A, i8 0x15, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x11, i8 0x13, i8 0x1A, i8 0x1B, i8 0x1B, i8 0x1B, i8 0x1A>
+  %lut_hi = <i8 0x10, i8 0x10, i8 0x01, i8 0x02, i8 0x04, i8 0x08, i8 0x04, i8 0x08, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x01, i8 0x02, i8 0x04, i8 0x08, i8 0x04, i8 0x08, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10, i8 0x10>
+  %lut_roll = <i8 0, i8 16, i8 19, i8 4, i8 -65, i8 -65, i8 -71, i8 -71, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 16, i8 19, i8 4, i8 -65, i8 -65, i8 -71, i8 -71, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0>
 
-  ; Lookup
+  %mask_2F = <i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f, i8 0x2f>
+
   %hi_nibbles = lshr <32 x i8> %str, 4
   %lo_nibbles = and <32 x i8> %str, %mask_2F
-  %lo = shufflevector <32 x i8> %lut_lo, <32 x i8> %lut_lo, <32 x i8> %lo_nibbles
+
+  %lo = shufflevector <32 x i8> %lut_lo, <32 x i8> %lut_lo, %lo_nibbles
   %eq_2F = icmp eq <32 x i8> %str, %mask_2F
+
   %hi_nibbles = and <32 x i8> %hi_nibbles, %mask_2F
-  %hi = shufflevector <32 x i8> %lut_hi, <32 x i8> %lut_hi, <32 x i8> %hi_nibbles
-  %roll = shufflevector <32 x i8> %lut_roll, <32 x i8> %lut_roll, <32 x i8> (add <32 x i8> %eq_2F, %hi_nibbles)
+  %hi = shufflevector <32 x i8> %lut_hi, <32 x i8> %lut_hi, %hi_nibbles
+  %roll = shufflevector <32 x i8> %lut_roll, <32 x i8> %lut_roll, add <32 x i8> %eq_2F, %hi_nibbles
 
-  ; Check for invalid input
-  %testz = call i1 @llvm.x86.avx2.ptestz.256(<32 x i8> %lo, <32 x i8> %hi)
-  br i1 %testz, label %valid_input, label %break_loop
+  %test = call i1 @llvm.x86.avx2.ptestz(<32 x i8> %lo, <32 x i8> %hi)
+  br i1 %test, label %while.end, label %while.body.continue
 
-valid_input:
-  ; Adjust str
+while.body.continue:
   %str = add <32 x i8> %str, %roll
 
-  ; Update pointers and lengths
-  %srclen_ptr = sub i64 %srclen_ptr, 32
-  %src_ptr = getelementptr i8, i8* %src_ptr, i64 32
+  %srclen_val = sub i64 %srclen_val, 32
+  store i64 %srclen_val, i64* %srclen_ptr
+  %src_val = getelementptr i8, i8* %src_val, i64 32
+  store i8* %src_val, i8** %src_ptr
 
-  ; Reshuffle and store
-  %reshuffled_str = call <32 x i8> @dec_reshuffle(<32 x i8> %str)
-  store <32 x i8> %reshuffled_str, <32 x i8>* %out
-  %out = getelementptr i8, i8* %out, i64 24
+  %reshuffled = call <8 x i32> @dec_reshuffle(<8 x i32> %str)
+  %out_val = load i8*, i8** %out_orig
+  store <8 x i32> %reshuffled, <8 x i32>* %out_val
+  %out_val = getelementptr i8, i8* %out_val, i64 24
+  store i8* %out_val, i8** %out_orig
 
-  br label %loop
+  br label %while.cond
 
-break_loop:
-  br label %scalar_decode
+while.end:
+  %out_val = load i8*, i8** %out_orig
+  %src_val = load i8*, i8** %src_ptr
+  %srclen_val = load i64, i64* %srclen_ptr
 
-scalar_decode:
-  ; Call scalar decoding function
-  %scalarret = call i64 @chromium_base64_decode(i8* %out, i8* %src_ptr, i64 %srclen_ptr)
-  %error_check = icmp eq i64 %scalarret, -1
-  br i1 %error_check, label %return_error, label %return_result
+  %scalarret = call i64 @chromium_base64_decode(i8* %out_val, i8* %src_val, i64 %srclen_val)
+  %cmp = icmp eq i64 %scalarret, -1
+  br i1 %cmp, label %error, label %success
 
-return_error:
+error:
   ret i64 -1
 
-return_result:
-  %result = sub i64 %out, %out_orig
-  %final_result = add i64 %result, %scalarret
-  ret i64 %final_result
+success:
+  %out_val = load i8*, i8** %out_orig
+  %result = sub i64 %out_val, %out
+  %result = add i64 %result, %scalarret
+  ret i64 %result
 }
-
-; Declare external functions
-declare i1 @llvm.x86.avx2.ptestz.256(<32 x i8>, <32 x i8>)
-declare <32 x i8> @dec_reshuffle(<32 x i8>)
-declare i64 @chromium_base64_decode(i8*, i8*, i64)
