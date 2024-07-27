@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "altivecbase64.h": "c"
+        "altivecbase64.h": "c",
+        "fastavxbase64.h": "c"
     }
 }
