@@ -26,8 +26,14 @@ ifeq ($(SIMD), AVX2)
 CFLAGS += -march=native -mavx2 -DHAVE_AVX2
 HEADERS += ./include/klompavxbase64.h \
            ./include/fastavxbase64.h
+# Use precompiled object file if it exists
+ifneq ("$(wildcard fastavxbase64o3.o)","")
+OBJECTS += klompavxbase64.o \
+           fastavxbase64o3.o
+else
 OBJECTS += klompavxbase64.o \
            fastavxbase64.o
+endif
 endif # AVX2
 
 ifeq ($(SIMD), AVX512BW)
