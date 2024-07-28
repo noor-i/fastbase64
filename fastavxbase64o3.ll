@@ -3,6 +3,19 @@ source_filename = "src/fastavxbase64.c"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx14.0.0"
 
+define <8 x i32> @pmadd_wd(<16 x i16> %a, <16 x i16> %b) {
+entry:
+  %mul0 = mul <16 x i16> %a, %b
+  %mul0_ext = sext <16 x i16> %mul0 to <16 x i32>
+  
+  %mul0_lo = shufflevector <16 x i32> %mul0_ext, <16 x i32> undef, <8 x i32> <i32 0, i32 2, i32 4, i32 6, i32 8, i32 10, i32 12, i32 14>
+  %mul0_hi = shufflevector <16 x i32> %mul0_ext, <16 x i32> undef, <8 x i32> <i32 1, i32 3, i32 5, i32 7, i32 9, i32 11, i32 13, i32 15>
+  
+  %result = add <8 x i32> %mul0_lo, %mul0_hi
+  
+  ret <8 x i32> %result
+}
+
 ; Function Attrs: nounwind ssp uwtable
 define dso_local i64 @fast_avx2_base64_encode(i8* %0, i8* %1, i64 %2) local_unnamed_addr #0 {
   %4 = icmp ugt i64 %2, 27
@@ -99,7 +112,7 @@ define dso_local i64 @fast_avx2_base64_decode(i8* %0, i8* %1, i64 %2) local_unna
   %29 = add i64 %8, -32
   %30 = getelementptr inbounds i8, i8* %7, i64 32
   %31 = tail call <16 x i16> @llvm.x86.avx2.pmadd.ub.sw(<32 x i8> %28, <32 x i8> <i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1>) #5
-  %32 = tail call <8 x i32> @llvm.x86.avx2.pmadd.wd(<16 x i16> %31, <16 x i16> <i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1>) #5
+  %32 = tail call <8 x i32> @pmadd_wd(<16 x i16> %31, <16 x i16> <i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1>) #5
   %33 = bitcast <8 x i32> %32 to <32 x i8>
   %34 = shufflevector <32 x i8> %33, <32 x i8> <i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 0, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison>, <32 x i32> <i32 2, i32 1, i32 0, i32 6, i32 5, i32 4, i32 10, i32 9, i32 8, i32 14, i32 13, i32 12, i32 undef, i32 undef, i32 undef, i32 undef, i32 18, i32 17, i32 16, i32 22, i32 21, i32 20, i32 26, i32 25, i32 24, i32 30, i32 29, i32 28, i32 48, i32 48, i32 48, i32 48>
   %35 = bitcast <32 x i8> %34 to <8 x i32>
