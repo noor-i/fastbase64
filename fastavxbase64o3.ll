@@ -16,6 +16,21 @@ entry:
   ret <8 x i32> %result
 }
 
+define <16 x i16> @pmadd_ub_sw(<32 x i8> %a, <32 x i8> %b) {
+entry:
+  %a_ext = zext <32 x i8> %a to <32 x i16>
+  %b_ext = zext <32 x i8> %b to <32 x i16>
+  
+  %mul0 = mul <32 x i16> %a_ext, %b_ext
+  
+  %mul0_lo = shufflevector <32 x i16> %mul0, <32 x i16> undef, <16 x i32> <i32 0, i32 2, i32 4, i32 6, i32 8, i32 10, i32 12, i32 14, i32 16, i32 18, i32 20, i32 22, i32 24, i32 26, i32 28, i32 30>
+  %mul0_hi = shufflevector <32 x i16> %mul0, <32 x i16> undef, <16 x i32> <i32 1, i32 3, i32 5, i32 7, i32 9, i32 11, i32 13, i32 15, i32 17, i32 19, i32 21, i32 23, i32 25, i32 27, i32 29, i32 31>
+  
+  %result = add <16 x i16> %mul0_lo, %mul0_hi
+  
+  ret <16 x i16> %result
+}
+
 ; Function Attrs: nounwind ssp uwtable
 define dso_local i64 @fast_avx2_base64_encode(i8* %0, i8* %1, i64 %2) local_unnamed_addr #0 {
   %4 = icmp ugt i64 %2, 27
@@ -111,7 +126,7 @@ define dso_local i64 @fast_avx2_base64_decode(i8* %0, i8* %1, i64 %2) local_unna
   %28 = add <32 x i8> %27, %13
   %29 = add i64 %8, -32
   %30 = getelementptr inbounds i8, i8* %7, i64 32
-  %31 = tail call <16 x i16> @llvm.x86.avx2.pmadd.ub.sw(<32 x i8> %28, <32 x i8> <i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1>) #5
+  %31 = tail call <16 x i16> @pmadd_ub_sw(<32 x i8> %28, <32 x i8> <i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1, i8 64, i8 1>) #5
   %32 = tail call <8 x i32> @pmadd_wd(<16 x i16> %31, <16 x i16> <i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1, i16 4096, i16 1>) #5
   %33 = bitcast <8 x i32> %32 to <32 x i8>
   %34 = shufflevector <32 x i8> %33, <32 x i8> <i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 0, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison, i8 poison>, <32 x i32> <i32 2, i32 1, i32 0, i32 6, i32 5, i32 4, i32 10, i32 9, i32 8, i32 14, i32 13, i32 12, i32 undef, i32 undef, i32 undef, i32 undef, i32 18, i32 17, i32 16, i32 22, i32 21, i32 20, i32 26, i32 25, i32 24, i32 30, i32 29, i32 28, i32 48, i32 48, i32 48, i32 48>
